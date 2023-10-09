@@ -115,6 +115,7 @@ pub fn download_nethost_from_nuget() -> Result<PathBuf, Box<dyn std::error::Erro
         (Os::Linux,   Arch::X86_64,  _) => "linux-x64",
         (Os::Linux,   Arch::ARM,     _) => "linux-arm",
         (Os::Linux,   Arch::AARCH64, _) => "linux-arm64",
+        (Os::Android, Arch::AARCH64, _) => "linux-bionic-arm64",
         (Os::MacOs,   Arch::X86_64,  _) => "osx-x64",
         (Os::MacOs,   Arch::AARCH64, _) => "osx-arm64",
         _ => panic!("platform not supported."),
@@ -123,6 +124,7 @@ pub fn download_nethost_from_nuget() -> Result<PathBuf, Box<dyn std::error::Erro
     let runtime_dir = Path::new(&env::var("OUT_DIR")?)
         .join("nethost")
         .join(target);
+    println!("cargo:warning=runtime_dir={}", runtime_dir.display());
     if !runtime_dir.exists() || runtime_dir.read_dir()?.next().is_none() {
         create_dir_all(&runtime_dir)?;
         download_nethost(target, &runtime_dir)?;
@@ -210,7 +212,8 @@ pub fn download_nethost(target: &str, target_path: &Path) -> Result<(), Box<dyn 
         }
 
         if let Some(ext) = out_path.extension() {
-            if !(ext == "a" || ext == "lib" || ext == "pdb") {
+            if !(ext == "so" || ext == "lib" || ext == "pdb") {
+                println!("cargo:warning=skipping {}", out_path.display());
                 continue;
             }
         } else {
@@ -226,6 +229,7 @@ pub fn download_nethost(target: &str, target_path: &Path) -> Result<(), Box<dyn 
         }
 
         let mut out_file = File::create(target_path.join(out_path.components().last().unwrap()))?;
+        println!("cargo:warning=copied {}", out_path.display());
         io::copy(&mut file, &mut out_file)?;
     }
 
